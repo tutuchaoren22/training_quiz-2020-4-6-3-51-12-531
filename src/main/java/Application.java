@@ -1,19 +1,12 @@
-import controllers.ParkingLotController;
-import controllers.ParkingSpaceController;
-import entities.ParkingLot;
-import entities.ParkingSpace;
+import controllers.ParkingController;
 import exception.InvalidInputException;
 import exception.InvalidTicketException;
 import exception.ParkingLotFullException;
 
-import java.util.Comparator;
-import java.util.List;
 import java.util.Scanner;
-import java.util.stream.Collectors;
 
 public class Application {
-    private static ParkingLotController parkingLotController = new ParkingLotController();
-    private static ParkingSpaceController parkingSpaceController = new ParkingSpaceController();
+    private static ParkingController parkingController = new ParkingController();
 
     public static void main(String[] args) {
         operateParking();
@@ -34,110 +27,50 @@ public class Application {
 
     private static void handle(String choice) {
         Scanner scanner = new Scanner(System.in);
-        if (choice.equals("1")) {
-            System.out.println("请输入初始化数据\n格式为\"停车场编号1：车位数,停车场编号2：车位数\" 如 \"A:8,B:9\"：");
-            String initInfo = scanner.next();
-            try {
+        switch (choice) {
+            case "1":
+                System.out.println("请输入初始化数据\n格式为\"停车场编号1：车位数,停车场编号2：车位数\" 如 \"A:8,B:9\"：");
+                String initInfo = scanner.next();
                 init(initInfo);
-            } catch (InvalidInputException e) {
-                System.out.println(e.getMessage());
-            }
-        } else if (choice.equals("2")) {
-            System.out.println("请输入车牌号\n格式为\"车牌号\" 如: \"A12098\"：");
-            String carInfo = scanner.next();
-            try {
-                String ticket = park(carInfo);
-                String[] ticketDetails = ticket.split(",");
-                System.out.format("已将您的车牌号为%s的车辆停到%s停车场%s号车位，停车券为：%s，请您妥善保存。\n", ticketDetails[2], ticketDetails[0], ticketDetails[1], ticket);
-            } catch (ParkingLotFullException e) {
-                System.out.println(e.getMessage());
-            }
-        } else if (choice.equals("3")) {
-            System.out.println("请输入停车券信息\n格式为\"停车场编号1,车位编号,车牌号\" 如 \"A,1,8\"：");
-            String ticket = scanner.next();
-            try {
-                String car = fetch(ticket);
-                System.out.format("已为您取到车牌号为%s的车辆，很高兴为您服务，祝您生活愉快!\n", car);
-            } catch (InvalidTicketException | InvalidInputException e) {
-                System.out.println(e.getMessage());
-            }
+                break;
+            case "2":
+                System.out.println("请输入车牌号\n格式为\"车牌号\" 如: \"A12098\"：");
+                String carInfo = scanner.next();
+                try {
+                    String ticket = park(carInfo);
+                    String[] ticketDetails = ticket.split(",");
+                    System.out.format("已将您的车牌号为%s的车辆停到%s停车场%s号车位，停车券为：%s，请您妥善保存。\n", ticketDetails[2], ticketDetails[0], ticketDetails[1], ticket);
+                } catch (ParkingLotFullException e) {
+                    System.out.println(e.getMessage());
+                }
+                break;
+            case "3":
+                System.out.println("请输入停车券信息\n格式为\"停车场编号1,车位编号,车牌号\" 如 \"A,1,8\"：");
+                String ticket = scanner.next();
+                try {
+                    String car = fetch(ticket);
+                    System.out.format("已为您取到车牌号为%s的车辆，很高兴为您服务，祝您生活愉快!\n", car);
+                } catch (InvalidTicketException | InvalidInputException e) {
+                    System.out.println(e.getMessage());
+                }
+                break;
         }
     }
 
     public static void init(String initInfo) {
-        if (!(initInfo.contains(",") && initInfo.contains(":"))) {
-            throw new InvalidInputException("请输入正确的初始化停车场数据");
-        }
-        parkingLotController.deleteAllParkingLotInfo();
-        parkingSpaceController.deleteAllParkingSpaceInfo();
-        for (String parkingLotInfo : initInfo.split(",")) {
-            String[] parkingLotInfoArr = parkingLotInfo.split(":");
-            parkingLotController.initParkingLotInfo(parkingLotInfoArr[0], Integer.parseInt(parkingLotInfoArr[1]));
+        try {
+            parkingController.init(initInfo);
+        } catch (InvalidInputException e) {
+            System.out.println(e.getMessage());
         }
     }
 
     public static String park(String carNumber) {
-        String ticket = "";
-        List<ParkingLot> allParkingLot = parkingLotController.getAllParkingLotInfo().stream()
-                .sorted(Comparator.comparing(ParkingLot::getParkingLotId))
-                .collect(Collectors.toList());
-        int allSpaceNumbers = allParkingLot.stream()
-                .map(ParkingLot::getParkingSpaceNumber)
-                .mapToInt(Integer::intValue)
-                .sum();
-        List<ParkingSpace> allPackingSpace = parkingSpaceController.getAllParkingSpaceInfo();
-
-        if (0 == allPackingSpace.size()) {
-            ticket = allParkingLot.get(0).getParkingLotId() + ",1," + carNumber;
-            parkingSpaceController.insertParkingSpaceForTicket(ticket);
-        } else if (allPackingSpace.size() == allSpaceNumbers) {
-            throw new ParkingLotFullException("非常抱歉，由于车位已满，暂时无法为您停车！");
-        } else {
-            int parkingSpaceId = 0;
-            for (ParkingLot parkingLotInfo : allParkingLot) {
-                List<ParkingSpace> parkingSpaceInfoForParkingLot = parkingSpaceController.getParkingSpaceForParkingLot(parkingLotInfo.getParkingLotId());
-                parkingSpaceId = findParkingSpace(parkingLotInfo.getParkingSpaceNumber(), parkingSpaceInfoForParkingLot);
-                if (0 == parkingSpaceId) {
-                    continue;
-                } else {
-                    ticket = parkingLotInfo.getParkingLotId() + "," + parkingSpaceId + "," + carNumber;
-                    break;
-                }
-            }
-            parkingSpaceController.insertParkingSpaceForTicket(ticket);
-        }
-        return ticket;
-    }
-
-    public static int findParkingSpace(int parkingSpaceNumber, List<ParkingSpace> parkingSpaceInfoForParkingLot) {
-        int[] hasParkedSpace = parkingSpaceInfoForParkingLot.stream()
-                .map(ParkingSpace::getParkingSpaceId)
-                .sorted()
-                .mapToInt(Integer::intValue)
-                .toArray();
-        int[] canParkSpace = new int[parkingSpaceNumber + 1];
-        for (int i = 0; i < hasParkedSpace.length; i++) {
-            canParkSpace[hasParkedSpace[i]] = hasParkedSpace[i];
-        }
-        for (int i = 1; i < canParkSpace.length; i++) {
-            if (canParkSpace[i] != i) {
-                return i;
-            }
-        }
-        return 0;
+        return parkingController.park(carNumber);
     }
 
     public static String fetch(String ticket) {
-        if (ticket.split(",").length != 3) {
-            throw new InvalidInputException("请输入正确的停车券");
-        }
-      ParkingSpace car = parkingSpaceController.getParkingSpaceForTicket(ticket);
-        if (car != null) {
-            parkingSpaceController.deleteParkingSpaceForTicket(ticket);
-            return car.getCarNumbers();
-        } else {
-            throw new InvalidTicketException("很抱歉，无法通过您提供的停车券为您找到相应的车辆，请您再次核对停车券是否有效！");
-        }
+        return parkingController.fetch(ticket);
     }
 
 }

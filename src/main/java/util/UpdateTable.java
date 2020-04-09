@@ -9,6 +9,7 @@ public class UpdateTable {
         PreparedStatement preparedStatement = null;
         try {
             conn = JDBCUtils.getConnection();
+            assert conn != null;
             preparedStatement = conn.prepareStatement(sql);
             for (int i = 0; i < args.length; i++) {
                 preparedStatement.setObject(i + 1, args[i]);

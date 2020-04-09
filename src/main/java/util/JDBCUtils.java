@@ -9,6 +9,7 @@ public class JDBCUtils {
         try {
             InputStream inputStream = ClassLoader.getSystemClassLoader().getResourceAsStream("jdbc.properties");
             Properties properties = new Properties();
+            assert inputStream != null;
             properties.load(inputStream);
             String url = properties.getProperty("url");
             String user = properties.getProperty("user");

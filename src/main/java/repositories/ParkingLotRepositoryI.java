@@ -6,6 +6,8 @@ import java.util.List;
 
 public interface ParkingLotRepositoryI {
     List<ParkingLot> getAllParkingLotInfo();
+
     void deleteAllParkingLotInfo();
-    void initParkingLotInfo(String parkingLotId,int parkingSpaceNumber);
+
+    void initParkingLotInfo(String parkingLotId, int parkingSpaceNumber);
 }

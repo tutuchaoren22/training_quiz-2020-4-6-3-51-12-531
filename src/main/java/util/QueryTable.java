@@ -15,6 +15,7 @@ public class QueryTable {
         ResultSet resultSet = null;
         try {
             conn = JDBCUtils.getConnection();
+            assert conn != null;
             preparedStatement = conn.prepareStatement(sql);
             for (int i = 0; i < args.length; i++) {
                 preparedStatement.setObject(i + 1, args[i]);
@@ -29,13 +30,14 @@ public class QueryTable {
                     Object value = resultSet.getObject(i + 1);
                     String columnName = resultSetMetaData.getColumnName(i + 1);
                     Field[] fields = eClass.getDeclaredFields();
-                    Field field=null;
+                    Field field = null;
                     for (Field f : fields) {
                         if (f.getAnnotation(Column.class).value().equals(columnName)) {
-                            field =f;
+                            field = f;
                             break;
                         }
                     }
+                    assert field != null;
                     field.setAccessible(true);
                     field.set(e, value);
                 }
