@@ -58,9 +58,7 @@ public class Application {
             try {
                 String car = fetch(ticket);
                 System.out.format("已为您取到车牌号为%s的车辆，很高兴为您服务，祝您生活愉快!\n", car);
-            } catch (InvalidTicketException e) {
-                System.out.println(e.getMessage());
-            } catch (InvalidInputException e) {
+            } catch (InvalidTicketException | InvalidInputException e) {
                 System.out.println(e.getMessage());
             }
         }
@@ -111,26 +109,35 @@ public class Application {
         return ticket;
     }
 
-  public static int findParkingSpace(int parkingSpaceNumber, List<ParkingSpace> parkingSpaceInfoForParkingLot) {
-    int[] hasParkedSpace = parkingSpaceInfoForParkingLot.stream()
-            .map(ParkingSpace::getParkingSpaceId)
-            .sorted()
-            .mapToInt(Integer::intValue)
-            .toArray();
-    int[] canParkSpace = new int[parkingSpaceNumber + 1];
-    for (int i = 0; i < hasParkedSpace.length; i++) {
-      canParkSpace[hasParkedSpace[i]] = hasParkedSpace[i];
+    public static int findParkingSpace(int parkingSpaceNumber, List<ParkingSpace> parkingSpaceInfoForParkingLot) {
+        int[] hasParkedSpace = parkingSpaceInfoForParkingLot.stream()
+                .map(ParkingSpace::getParkingSpaceId)
+                .sorted()
+                .mapToInt(Integer::intValue)
+                .toArray();
+        int[] canParkSpace = new int[parkingSpaceNumber + 1];
+        for (int i = 0; i < hasParkedSpace.length; i++) {
+            canParkSpace[hasParkedSpace[i]] = hasParkedSpace[i];
+        }
+        for (int i = 1; i < canParkSpace.length; i++) {
+            if (canParkSpace[i] != i) {
+                return i;
+            }
+        }
+        return 0;
     }
-    for (int i = 1; i < canParkSpace.length; i++) {
-      if (canParkSpace[i] != i) {
-        return i;
-      }
-    }
-    return 0;
-  }
 
-  public static String fetch(String ticket) {
-        return "";
+    public static String fetch(String ticket) {
+        if (ticket.split(",").length != 3) {
+            throw new InvalidInputException("请输入正确的停车券");
+        }
+      ParkingSpace car = parkingSpaceRepository.getParkingSpaceForTicket(ticket);
+        if (car != null) {
+            parkingSpaceRepository.deleteParkingSpaceForTicket(ticket);
+            return car.getCarNumbers();
+        } else {
+            throw new InvalidTicketException("很抱歉，无法通过您提供的停车券为您找到相应的车辆，请您再次核对停车券是否有效！");
+        }
     }
 
 }
