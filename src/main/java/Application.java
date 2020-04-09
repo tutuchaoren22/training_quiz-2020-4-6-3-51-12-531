@@ -1,10 +1,10 @@
+import controllers.ParkingLotController;
+import controllers.ParkingSpaceController;
 import entities.ParkingLot;
 import entities.ParkingSpace;
 import exception.InvalidInputException;
 import exception.InvalidTicketException;
 import exception.ParkingLotFullException;
-import repositories.ParkingLotRepository;
-import repositories.ParkingSpaceRepository;
 
 import java.util.Comparator;
 import java.util.List;
@@ -12,8 +12,8 @@ import java.util.Scanner;
 import java.util.stream.Collectors;
 
 public class Application {
-    private static ParkingLotRepository parkingLotRepository = new ParkingLotRepository();
-    private static ParkingSpaceRepository parkingSpaceRepository = new ParkingSpaceRepository();
+    private static ParkingLotController parkingLotController = new ParkingLotController();
+    private static ParkingSpaceController parkingSpaceController = new ParkingSpaceController();
 
     public static void main(String[] args) {
         operateParking();
@@ -68,34 +68,34 @@ public class Application {
         if (!(initInfo.contains(",") && initInfo.contains(":"))) {
             throw new InvalidInputException("请输入正确的初始化停车场数据");
         }
-        parkingLotRepository.deleteAllParkingLotInfo();
-        parkingSpaceRepository.deleteAllParkingSpaceInfo();
+        parkingLotController.deleteAllParkingLotInfo();
+        parkingSpaceController.deleteAllParkingSpaceInfo();
         for (String parkingLotInfo : initInfo.split(",")) {
             String[] parkingLotInfoArr = parkingLotInfo.split(":");
-            parkingLotRepository.initParkingLotInfo(parkingLotInfoArr[0], Integer.parseInt(parkingLotInfoArr[1]));
+            parkingLotController.initParkingLotInfo(parkingLotInfoArr[0], Integer.parseInt(parkingLotInfoArr[1]));
         }
     }
 
     public static String park(String carNumber) {
         String ticket = "";
-        List<ParkingLot> allParkingLot = parkingLotRepository.getAllParkingLotInfo().stream()
+        List<ParkingLot> allParkingLot = parkingLotController.getAllParkingLotInfo().stream()
                 .sorted(Comparator.comparing(ParkingLot::getParkingLotId))
                 .collect(Collectors.toList());
         int allSpaceNumbers = allParkingLot.stream()
                 .map(ParkingLot::getParkingSpaceNumber)
                 .mapToInt(Integer::intValue)
                 .sum();
-        List<ParkingSpace> allPackingSpace = parkingSpaceRepository.getAllParkingSpaceInfo();
+        List<ParkingSpace> allPackingSpace = parkingSpaceController.getAllParkingSpaceInfo();
 
         if (0 == allPackingSpace.size()) {
             ticket = allParkingLot.get(0).getParkingLotId() + ",1," + carNumber;
-            parkingSpaceRepository.insertParkingSpaceForTicket(ticket);
+            parkingSpaceController.insertParkingSpaceForTicket(ticket);
         } else if (allPackingSpace.size() == allSpaceNumbers) {
             throw new ParkingLotFullException("非常抱歉，由于车位已满，暂时无法为您停车！");
         } else {
             int parkingSpaceId = 0;
             for (ParkingLot parkingLotInfo : allParkingLot) {
-                List<ParkingSpace> parkingSpaceInfoForParkingLot = parkingSpaceRepository.getParkingSpaceForParkingLot(parkingLotInfo.getParkingLotId());
+                List<ParkingSpace> parkingSpaceInfoForParkingLot = parkingSpaceController.getParkingSpaceForParkingLot(parkingLotInfo.getParkingLotId());
                 parkingSpaceId = findParkingSpace(parkingLotInfo.getParkingSpaceNumber(), parkingSpaceInfoForParkingLot);
                 if (0 == parkingSpaceId) {
                     continue;
@@ -104,7 +104,7 @@ public class Application {
                     break;
                 }
             }
-            parkingSpaceRepository.insertParkingSpaceForTicket(ticket);
+            parkingSpaceController.insertParkingSpaceForTicket(ticket);
         }
         return ticket;
     }
@@ -131,9 +131,9 @@ public class Application {
         if (ticket.split(",").length != 3) {
             throw new InvalidInputException("请输入正确的停车券");
         }
-      ParkingSpace car = parkingSpaceRepository.getParkingSpaceForTicket(ticket);
+      ParkingSpace car = parkingSpaceController.getParkingSpaceForTicket(ticket);
         if (car != null) {
-            parkingSpaceRepository.deleteParkingSpaceForTicket(ticket);
+            parkingSpaceController.deleteParkingSpaceForTicket(ticket);
             return car.getCarNumbers();
         } else {
             throw new InvalidTicketException("很抱歉，无法通过您提供的停车券为您找到相应的车辆，请您再次核对停车券是否有效！");

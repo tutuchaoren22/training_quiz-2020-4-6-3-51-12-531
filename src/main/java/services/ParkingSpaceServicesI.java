@@ -1,10 +1,10 @@
-package repositories;
+package services;
 
 import entities.ParkingSpace;
 
 import java.util.List;
 
-public interface ParkingSpaceRepositoryI {
+public interface ParkingSpaceServicesI {
     List<ParkingSpace> getAllParkingSpaceInfo();
 
     ParkingSpace getParkingSpaceForTicket(String ticket);
