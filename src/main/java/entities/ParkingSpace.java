@@ -1,9 +1,15 @@
 package entities;
 
+import util.Column;
+
 public class ParkingSpace {
+    @Column("id")
     private int id;
+    @Column("parking_lot_id")
     private String parkingLotId;
+    @Column("parking_space_id")
     private int parkingSpaceId;
+    @Column("car_numbers")
     private String carNumbers;
 
     public ParkingSpace() {
