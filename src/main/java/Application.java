@@ -1,10 +1,15 @@
+import entities.ParkingLot;
+import entities.ParkingSpace;
 import exception.InvalidInputException;
 import exception.InvalidTicketException;
 import exception.ParkingLotFullException;
 import repositories.ParkingLotRepository;
 import repositories.ParkingSpaceRepository;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 public class Application {
     private static ParkingLotRepository parkingLotRepository = new ParkingLotRepository();
@@ -74,10 +79,57 @@ public class Application {
     }
 
     public static String park(String carNumber) {
-        return "";
+        String ticket = "";
+        List<ParkingLot> allParkingLot = parkingLotRepository.getAllParkingLotInfo().stream()
+                .sorted(Comparator.comparing(ParkingLot::getParkingLotId))
+                .collect(Collectors.toList());
+        int allSpaceNumbers = allParkingLot.stream()
+                .map(ParkingLot::getParkingSpaceNumber)
+                .mapToInt(Integer::intValue)
+                .sum();
+        List<ParkingSpace> allPackingSpace = parkingSpaceRepository.getAllParkingSpaceInfo();
+
+        if (0 == allPackingSpace.size()) {
+            ticket = allParkingLot.get(0).getParkingLotId() + ",1," + carNumber;
+            parkingSpaceRepository.insertParkingSpaceForTicket(ticket);
+        } else if (allPackingSpace.size() == allSpaceNumbers) {
+            throw new ParkingLotFullException("非常抱歉，由于车位已满，暂时无法为您停车！");
+        } else {
+            int parkingSpaceId = 0;
+            for (ParkingLot parkingLotInfo : allParkingLot) {
+                List<ParkingSpace> parkingSpaceInfoForParkingLot = parkingSpaceRepository.getParkingSpaceForParkingLot(parkingLotInfo.getParkingLotId());
+                parkingSpaceId = findParkingSpace(parkingLotInfo.getParkingSpaceNumber(), parkingSpaceInfoForParkingLot);
+                if (0 == parkingSpaceId) {
+                    continue;
+                } else {
+                    ticket = parkingLotInfo.getParkingLotId() + "," + parkingSpaceId + "," + carNumber;
+                    break;
+                }
+            }
+            parkingSpaceRepository.insertParkingSpaceForTicket(ticket);
+        }
+        return ticket;
     }
 
-    public static String fetch(String ticket) {
+  public static int findParkingSpace(int parkingSpaceNumber, List<ParkingSpace> parkingSpaceInfoForParkingLot) {
+    int[] hasParkedSpace = parkingSpaceInfoForParkingLot.stream()
+            .map(ParkingSpace::getParkingSpaceId)
+            .sorted()
+            .mapToInt(Integer::intValue)
+            .toArray();
+    int[] canParkSpace = new int[parkingSpaceNumber + 1];
+    for (int i = 0; i < hasParkedSpace.length; i++) {
+      canParkSpace[hasParkedSpace[i]] = hasParkedSpace[i];
+    }
+    for (int i = 1; i < canParkSpace.length; i++) {
+      if (canParkSpace[i] != i) {
+        return i;
+      }
+    }
+    return 0;
+  }
+
+  public static String fetch(String ticket) {
         return "";
     }
 
